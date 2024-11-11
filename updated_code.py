@@ -215,7 +215,20 @@ with col2:
                     )
                     st.button("Go to generate report")
             elif picture:
-                st.image(picture, caption="Captured Image", use_column_width=True)
+                st.image(picture, caption="Uploaded Image", use_column_width=True)
+                with open(os.path.join(picture.name), 'wb') as f:
+                    f.write(picture.getbuffer())
+                image_path = os.path.join(picture.name)
+                st.subheader("Description:", divider=True)
+                with st.spinner("Analyzing the image..."):
+                    content = photo_rec(image_path)
+                    # st.write(content)
+                    txt = st.text_area(
+                        "Input Additional Comments:",
+                        content
+                    )
+                    st.button("Go to generate report")
+                # st.image(picture, caption="Captured Image", use_column_width=True)
 
             # if st.button("Generate Image Description"):
             #     with st.spinner("Analyzing the image..."):
