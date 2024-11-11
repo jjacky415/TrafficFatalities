@@ -1,7 +1,7 @@
 import os
 import openai
 import streamlit as st
-import sounddevice as sd
+# import sounddevice as sd
 from scipy.io.wavfile import write
 import numpy as np
 from datetime import datetime
@@ -106,11 +106,11 @@ def simulate_image_description(language="English"):
         return f"Error generating description: {e}"
 
 # Function to record audio
-def record_audio(duration=10, fs=44100):
-    st.info(f"Recording for {duration} seconds...")
-    audio_data = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype=np.int16)
-    sd.wait()
-    return audio_data, fs
+# def record_audio(duration=10, fs=44100):
+#     st.info(f"Recording for {duration} seconds...")
+#     audio_data = sd.rec(int(duration * fs), samplerate=fs, channels=1, dtype=np.int16)
+#     sd.wait()
+#     return audio_data, fs
 
 # Set up two-column layout
 col1, col2 = st.columns(2)
@@ -203,23 +203,23 @@ with col2:
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Speech-to-Text Transcription Feature
-    with st.expander("🎤 Speech-to-Text Transcription", expanded=False):
-        st.markdown("<div class='dashboard-card'>", unsafe_allow_html=True)
-        duration = st.slider("Select recording duration (seconds)", 1, 60, 10)
+    # with st.expander("🎤 Speech-to-Text Transcription", expanded=False):
+    #     st.markdown("<div class='dashboard-card'>", unsafe_allow_html=True)
+    #     duration = st.slider("Select recording duration (seconds)", 1, 60, 10)
 
-        if st.button("Record and Transcribe Audio"):
-            audio_data, fs = record_audio(duration=duration)
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio_file:
-                write(temp_audio_file.name, fs, audio_data)
-                st.audio(temp_audio_file.name)
+    #     if st.button("Record and Transcribe Audio"):
+    #         audio_data, fs = record_audio(duration=duration)
+    #         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio_file:
+    #             write(temp_audio_file.name, fs, audio_data)
+    #             st.audio(temp_audio_file.name)
 
-                try:
-                    with open(temp_audio_file.name, "rb") as audio_file:
-                        transcription = openai.Audio.transcribe("whisper-1", audio_file)
-                        transcription_text = transcription['text']
-                        transcription_text = translate_text(transcription_text, target_lang_code)
-                        st.markdown("**Transcription Result:**")
-                        st.write(transcription_text)
-                except Exception as e:
-                    st.error(f"Error transcribing recorded audio: {e}")
-        st.markdown("</div>", unsafe_allow_html=True)
+    #             try:
+    #                 with open(temp_audio_file.name, "rb") as audio_file:
+    #                     transcription = openai.Audio.transcribe("whisper-1", audio_file)
+    #                     transcription_text = transcription['text']
+    #                     transcription_text = translate_text(transcription_text, target_lang_code)
+    #                     st.markdown("**Transcription Result:**")
+    #                     st.write(transcription_text)
+    #             except Exception as e:
+    #                 st.error(f"Error transcribing recorded audio: {e}")
+    #     st.markdown("</div>", unsafe_allow_html=True)
