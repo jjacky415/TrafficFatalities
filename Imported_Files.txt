@@ -1,7 +1,0 @@
-openai
-streamlit
-sounddevice as sd
-write
-numpy
-datetime
-tempfile

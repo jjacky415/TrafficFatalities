@@ -1,0 +1,8 @@
+os
+openai
+streamlit
+sounddevice
+scipy
+numpy
+datetime
+tempfile
