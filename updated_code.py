@@ -6,6 +6,7 @@ from scipy.io.wavfile import write
 import numpy as np
 from datetime import datetime
 import tempfile
+import base64
 
 # Set up Streamlit page configuration as the first command
 st.set_page_config(page_title="AI-Powered Traffic Incident Reporter", layout="centered", page_icon="🚦")
@@ -163,6 +164,32 @@ with col1:
             except Exception as e:
                 st.error(f"Error generating incident report: {e}")
 
+def encode_image(image_path):
+  with open(image_path, "rb") as image_file:
+    return base64.b64encode(image_file.read()).decode('utf-8')
+
+def photo_rec(image_path, language="English"):
+    base64_image = encode_image(image_path)
+    response = openai.ChatCompletion.create(
+    model="gpt-4-turbo",
+    messages=[
+        {
+        "role": "user",
+        "content": [
+            {"type": "text", "text": f"What’s in this image? Please respond in {language}."},
+            {
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:image/png;base64,{base64_image}",
+            },
+            },
+        ],
+        }
+    ],
+    max_tokens=300,
+    )
+    return response.choices[0].message.content
+
 # Right Column: Other Features (Image Reporting, Audio Transcription, etc.)
 with col2:
     # Image Reporting Feature
@@ -175,14 +202,26 @@ with col2:
         if uploaded_image or picture:
             if uploaded_image:
                 st.image(uploaded_image, caption="Uploaded Image", use_column_width=True)
+                with open(os.path.join(uploaded_image.name), 'wb') as f:
+                    f.write(uploaded_image.getbuffer())
+                image_path = os.path.join(uploaded_image.name)
+                st.subheader("Description:", divider=True)
+                with st.spinner("Analyzing the image..."):
+                    content = photo_rec(image_path)
+                    # st.write(content)
+                    txt = st.text_area(
+                        "Input Additional Comments:",
+                        content
+                    )
+                    st.button("Go to generate report")
             elif picture:
                 st.image(picture, caption="Captured Image", use_column_width=True)
 
-            if st.button("Generate Image Description"):
-                with st.spinner("Analyzing the image..."):
-                    description = simulate_image_description(language=selected_language)
-                    st.markdown("**Generated Image Description:**")
-                    st.write(description)
+            # if st.button("Generate Image Description"):
+            #     with st.spinner("Analyzing the image..."):
+            #         description = simulate_image_description(language=selected_language)
+            #         st.markdown("**Generated Image Description:**")
+            #         st.write(description)
         st.markdown("</div>", unsafe_allow_html=True)
 
     # Audio Transcription Feature
