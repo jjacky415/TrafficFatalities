@@ -105,6 +105,67 @@ def simulate_image_description(language="English"):
         return translate_text(description, target_lang_code)
     except Exception as e:
         return f"Error generating description: {e}"
+    
+# Function to transcribe audio
+def transcribe_audio(audio_file):
+    # Pass the file-like object directly to OpenAI's API
+    transcription = openai.Audio.transcribe("whisper-1", audio_file)
+    return transcription['text']
+
+# I used chatgpt for this def // Function to handle audio transcription for recorded audio
+def handle_recorded_audio(audio_value):
+    if audio_value is not None:
+        # Create a temporary file to save audio data
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_audio_file:
+            tmp_audio_file.write(audio_value.read())  # Write audio data to file as bytes
+            tmp_audio_file.seek(0)  # Go back to start of file for reading
+            
+            # Open the file in binary mode and pass it to the transcription function
+            with open(tmp_audio_file.name, "rb") as audio_file:
+                transcription_text = transcribe_audio(audio_file)
+            return transcription_text
+    return None
+
+# Helper functions for summarizing, transcribing, and analyzing the transcription
+def abstract_summary_extraction(transcription):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "Summarize this audio file into a text report. Be sure to include all details that are in the recording the driver uploaded."},
+            {"role": "user", "content": transcription}
+        ]
+    )
+    return response.choices[0].message['content']
+
+def key_points_extraction(transcription):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "Extract key points from this audio file, including the type of accident, location, time and date of occurrence, individuals involved, and any specific details mentioned. Prioritize identifying key phrases and names, noting emotional cues or urgency, and summarizing the main concern expressed by the speaker. The goal is to provide a concise summary to facilitate quick response and categorization of the report."},
+            {"role": "user", "content": transcription}
+        ]
+    )
+    return response.choices[0].message['content']
+
+def action_item_extraction(transcription):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "Analyze this user-uploaded audio recording to identify and list any specific action items requested or implied by the speaker. Action items might include immediate responses, such as contacting authorities, sending medical assistance, notifying specific personnel, or implementing a containment procedure. Capture any instructions or recommendations given by the speaker regarding the accident. Additionally, extract contextual information to support the action items, such as the type of accident, location, urgency level, individuals involved, potential hazards, and other relevant details."},
+            {"role": "user", "content": transcription}
+        ]
+    )
+    return response.choices[0].message['content']
+
+def sentiment_analysis(transcription):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "Analyze the sentiment of this audio recording as positive, negative, or neutral. Additionally,  use sentiment analysis to gauge the tone of urgency or distress, summarizing all critical points for efficient response and categorization."},
+            {"role": "user", "content": transcription}
+        ]
+    )
+    return response.choices[0].message['content']
 
 # Function to record audio
 # def record_audio(duration=10, fs=44100):
@@ -238,38 +299,59 @@ with col2:
     # Audio Transcription Feature
     with st.expander("🎙️ Audio Transcription", expanded=False):
         st.markdown("<div class='dashboard-card'>", unsafe_allow_html=True)
-        uploaded_audio = st.file_uploader("Upload an audio file for transcription", type=["mp3", "wav"])
+        audio_value = st.experimental_audio_input(" ")
+        uploaded_audio = st.file_uploader("Upload an audio file that contains your voice recording of an accident you saw:", type=["mp3", "wav", "m4a"])
 
-        if uploaded_audio:
-            if st.button("Transcribe Uploaded Audio"):
-                try:
-                    transcription = openai.Audio.transcribe("whisper-1", uploaded_audio)
-                    transcription_text = transcription['text']
-                    transcription_text = translate_text(transcription_text, target_lang_code)
-                    st.markdown("**Transcription Result:**")
-                    st.write(transcription_text)
-                except Exception as e:
-                    st.error(f"Error transcribing audio: {e}")
-        st.markdown("</div>", unsafe_allow_html=True)
+        # If audio recording exists, transcribe it
+if audio_value:
+    st.write("Transcribing recorded audio... Please wait.")
+    transcription = handle_recorded_audio(audio_value)
+    if transcription:
+        st.subheader("Transcription")
+        st.write(transcription)
 
-    # Speech-to-Text Transcription Feature
-    # with st.expander("🎤 Speech-to-Text Transcription", expanded=False):
-    #     st.markdown("<div class='dashboard-card'>", unsafe_allow_html=True)
-    #     duration = st.slider("Select recording duration (seconds)", 1, 60, 10)
+        abstract_summary = abstract_summary_extraction(transcription)
+        key_points = key_points_extraction(transcription)
+        action_items = action_item_extraction(transcription)
+        sentiment = sentiment_analysis(transcription)
+    
+        # Display results
+        st.title("Summary")
+        st.write(abstract_summary)
+    
+        st.title("Key Points")
+        st.write(key_points)
 
-    #     if st.button("Record and Transcribe Audio"):
-    #         audio_data, fs = record_audio(duration=duration)
-    #         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio_file:
-    #             write(temp_audio_file.name, fs, audio_data)
-    #             st.audio(temp_audio_file.name)
+        st.title("Action Items")
+        st.write(action_items)
 
-    #             try:
-    #                 with open(temp_audio_file.name, "rb") as audio_file:
-    #                     transcription = openai.Audio.transcribe("whisper-1", audio_file)
-    #                     transcription_text = transcription['text']
-    #                     transcription_text = translate_text(transcription_text, target_lang_code)
-    #                     st.markdown("**Transcription Result:**")
-    #                     st.write(transcription_text)
-    #             except Exception as e:
-    #                 st.error(f"Error transcribing recorded audio: {e}")
-    #     st.markdown("</div>", unsafe_allow_html=True)
+        st.title("Sentiment Analysis")
+        st.write(sentiment)
+
+
+    if uploaded_audio:
+        st.audio(uploaded_audio, format="audio/mp3/m4a")
+        st.write("Transcribing and analyzing audio... Please wait.")
+    
+        # Transcribe audio directly using the file-like object
+        transcription = transcribe_audio(uploaded_audio)
+    
+        # Run analyses on transcription
+        abstract_summary = abstract_summary_extraction(transcription)
+        key_points = key_points_extraction(transcription)
+        action_items = action_item_extraction(transcription)
+        sentiment = sentiment_analysis(transcription)
+    
+            # Display results
+        st.title("Summary")
+        st.write(abstract_summary)
+    
+        st.title("Key Points")
+        st.write(key_points)
+
+        st.title("Action Items")
+        st.write(action_items)
+
+        st.title("Sentiment Analysis")
+        st.write(sentiment)
+    st.markdown("</div>", unsafe_allow_html=True)
