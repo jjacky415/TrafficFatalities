@@ -1,7 +1,7 @@
 openai
 streamlit
 datetime
-PIL
+pillow
 transformers
 tempfile
 torch
