@@ -3,5 +3,4 @@ streamlit
 datetime
 pillow
 transformers
-tempfile
 torch
