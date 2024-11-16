@@ -1,6 +1,7 @@
-openai==0.28
+openai
 streamlit
-sounddevice
-scipy
-numpy
 datetime
+PIL
+transformers
+tempfile
+torch
